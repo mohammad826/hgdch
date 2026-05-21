@@ -1,6 +1,0 @@
-{
-  "name": "Adsgram Telegram Mini App",
-  "description": "Telegram Mini App for earning coins through Adsgram video ads and completing social tasks.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
