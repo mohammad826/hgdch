@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitives
+    function isSignedIn() { return request.auth != null; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    
+    // User Blueprint
+    function isValidUser(data) {
+      return data.keys().hasAll(['balance', 'tasksCompleted', 'tgUserId', 'updatedAt']) 
+          && data.balance is number
+          && data.tasksCompleted is list
+          && data.tgUserId is string
+          && data.tgUserId.size() <= 64
+          && data.updatedAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow list: if false; // No blanket listing
+      
+      allow create: if isSignedIn() && request.auth.uid == userId 
+                    && isValidUser(incoming())
+                    && incoming().balance == 0
+                    && incoming().tasksCompleted.size() == 0
+                    && incoming().updatedAt == request.time;
+                    
+      allow update: if isSignedIn() && request.auth.uid == userId 
+                    && isValidUser(incoming())
+                    && incoming().tgUserId == existing().tgUserId
+                    && incoming().updatedAt == request.time
+                    // Allowing updates to balance and tasks via client for this simple TG app
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'tasksCompleted', 'updatedAt']);
+    }
+
+    // Settings Blueprint
+    match /settings/global {
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow write: if isSignedIn(); // Open for mini app admin
+    }
+
+    // Withdrawal Blueprint
+    function isValidWithdrawal(data) {
+      return data.keys().hasAll(['userId', 'amount', 'address', 'method', 'status', 'timestamp', 'createdAt'])
+          && data.userId is string
+          && data.amount is number
+          && data.address is string
+          && data.method is string
+          && data.status is string
+          && data.timestamp is number
+          && data.createdAt is timestamp;
+    }
+
+    match /withdrawals/{withdrawalId} {
+      allow read: if isSignedIn();
+      
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid
+                    && isValidWithdrawal(incoming())
+                    && incoming().status == 'pending'
+                    && incoming().amount >= 50000 // min withdraw
+                    && incoming().createdAt == request.time;
+      
+      allow update: if isSignedIn(); // Opened for admin demo
+      allow delete: if false;
+    }
+  }
+}
