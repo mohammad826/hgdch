@@ -15,7 +15,7 @@ const PORT = 3000;
 app.use(express.json());
 
 // Initialize PostgreSQL Pool
-const connectionString = process.env.DATABASE_URL || "postgresql://postgres:vp7fyiMJkA6dd0YH@db.mbmplfyhvfanyjdpatot.supabase.co:5432/postgres";
+const connectionString = process.env.DATABASE_URL || "postgresql://@db.mbmplfyhvfanyjdpatot.supabase.co:5432/postgres";
 
 const pool = new Pool({
   connectionString,
@@ -78,8 +78,19 @@ async function initDB() {
     } finally {
       client.release();
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error("Failed to connect or initialize database:", err);
+    if (err.code === 'ENETUNREACH') {
+      console.error("\n=========================================");
+      console.error("🔴 DATABASE CONNECTION ERROR (IPv6 Issue) 🔴");
+      console.error("Render does not support external IPv6 connections.");
+      console.error("Supabase direct database URLs (db.*.supabase.co) use IPv6.");
+      console.error("To fix this:");
+      console.error("1. Go to your Supabase dashboard -> Database settings -> Connection pooler.");
+      console.error("2. Copy the Connection Pooling URL (pooler.supabase.com).");
+      console.error("3. Add it as 'DATABASE_URL' in your Render Environment Variables.");
+      console.error("=========================================\n");
+    }
   }
 }
 
