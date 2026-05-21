@@ -15,7 +15,7 @@ const PORT = 3000;
 app.use(express.json());
 
 // Initialize PostgreSQL Pool
-const connectionString = process.env.DATABASE_URL || "postgresql://@db.mbmplfyhvfanyjdpatot.supabase.co:5432/postgres";
+const connectionString = process.env.DATABASE_URL || "postgresql://postgres:@db.mbmplfyhvfanyjdpatot.supabase.co:5432/postgres";
 
 const pool = new Pool({
   connectionString,
